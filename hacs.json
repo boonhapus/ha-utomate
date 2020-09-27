@@ -2,5 +2,7 @@
     "name": "hautomate",
     "content_in_root": false,
     "domains": ["automation", "script"],
+    "zip_release": true,
+    "filename": "hautomate.zip",
     "iot_class": ["Local Push"]
 }
