@@ -1,0 +1,5 @@
+{
+    "name": "hautomate",
+    "content_in_root": false,
+    "iot_class": ["Local Push"]
+}
