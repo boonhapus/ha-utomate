@@ -1,5 +1,6 @@
 {
     "name": "hautomate",
-    "content_in_root": true,
+    "content_in_root": false,
+    "domains": ["automation", "script"],
     "iot_class": ["Local Push"]
 }
