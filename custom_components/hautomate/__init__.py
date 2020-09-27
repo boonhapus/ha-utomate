@@ -23,14 +23,12 @@ _LOGGER = logging.getLogger(__name__)
 
 async def async_setup(hass, config):
     """ """
-    hass_data = {
+    cfg_data = {
+        'apps_dir': config[DOMAIN][CONF_APPS_DIR],
         'latitude': hass.config.latitude,
         'longitude': hass.config.longitude,
         'elevation': hass.config.elevation,
-        'timezone': hass.config.time_zone
-    }
-
-    hauto_data = {
+        'timezone': hass.config.time_zone,
         'api_configs': {
             'homeassistant': {
                 'feed': 'custom_component',
@@ -39,7 +37,7 @@ async def async_setup(hass, config):
         }
     }
 
-    cfg = HautoConfig(apps_dir=config[DOMAIN][CONF_APPS_DIR], **hass_data, **hauto_data)
+    cfg = HautoConfig(**cfg_data)
     hauto = Hautomate(cfg)
     await hauto.start()
     _LOGGER.info(f'setup {len(hauto.apps)} apps!')
@@ -59,7 +57,11 @@ async def async_setup(hass, config):
         if event.event_type in (EVENT_TIME_CHANGED, ):
             return
 
-        await hauto.bus.fire(HASS_EVENT_RECEIVE, parent=hass, hass_event=event)
+        await hauto.bus.fire(
+            HASS_EVENT_RECEIVE,
+            parent=hauto.apis.homeassistant,
+            hass_event=event
+        )
 
     # ----------------------------------------------------------------------------------
 
@@ -69,16 +71,3 @@ async def async_setup(hass, config):
     # listen to HASS events
     hass.bus.async_listen(MATCH_ALL, _fire_event)
     return True
-
-
-class AppIntent(SwitchEntity):
-
-    async def turn_on(self, **kw) -> None:
-        """
-        """
-        self.intent.unpause()
-
-    async def turn_off(self, **kw) -> None:
-        """
-        """
-        self.intent.pause()
