@@ -22,6 +22,7 @@ class HautoIntentEntity(ToggleEntity):
 
         self.hauto_intent.pause = self._pause
         self.hauto_intent.unpause = self._unpause
+        # self.hauto_intent.__call__ = self.__intent_call__
 
     # Internal methods
 
@@ -35,6 +36,11 @@ class HautoIntentEntity(ToggleEntity):
         self.hauto_intent._state = IntentState.unpaused
         await self.async_update_ha_state()
 
+    # async def __intent_call__(self, ctx, *a, **kw):
+    #     _LOGGER.info(f'running... {ctx.event}')
+    #     r = await self.hauto_intent.__runner__(ctx, *a, **kw)
+    #     await self.async_update_ha_state()
+
     # ABC overrides
 
     @property
@@ -42,10 +48,14 @@ class HautoIntentEntity(ToggleEntity):
         """ Return the polling requirement of the entity. """
         return False
 
-    # @property
-    # def name(self) -> str:
-    #     """ Return the name of the entity. """
-    #     return self._name
+    @property
+    def unique_id(self):
+        return self.hauto_intent._id
+
+    @property
+    def name(self) -> str:
+        """ Return the name of the entity. """
+        return f'intent_{self.hauto_intent._id}'
 
     @property
     def state(self) -> str:
