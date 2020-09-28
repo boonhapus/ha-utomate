@@ -9,11 +9,14 @@ import logging
 
 from hautomate.apis.homeassistant.events import HASS_EVENT_RECEIVE
 from hautomate.settings import HautoConfig
+# from hautomate.context import Context
+# from hautomate.events import EVT_INTENT_SUBSCRIBE
 from hautomate import Hautomate
 
-from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import MATCH_ALL, SERVICE_RELOAD, EVENT_TIME_CHANGED
+# from homeassistant.core import Event
 
+from .switch import HautoIntentEntity
 from .schema import CONFIG_SCHEMA
 from .const import DOMAIN, CONF_APPS_DIR
 
@@ -21,7 +24,7 @@ from .const import DOMAIN, CONF_APPS_DIR
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup(hass, config):
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """ """
     cfg_data = {
         'apps_dir': config[DOMAIN][CONF_APPS_DIR],
@@ -41,6 +44,10 @@ async def async_setup(hass, config):
     hauto = Hautomate(cfg)
     await hauto.start()
     _LOGGER.info(f'setup {len(hauto.apps)} apps!')
+
+    # register Intents
+    for app in hauto.apps:
+        async_add_entities([HautoIntentEntity(i) for i in app.intents])
 
     # ----------------------------------------------------------------------------------
 
@@ -63,6 +70,11 @@ async def async_setup(hass, config):
             hass_event=event
         )
 
+    # async def _create_intent_switch(ctx: Context):
+    #     """ TODO """
+    #     intent = ctx.event_data['created_intent']
+    #     async_add_entities([HautoIntentEntity(intent)])
+
     # ----------------------------------------------------------------------------------
 
     # register services
@@ -70,4 +82,10 @@ async def async_setup(hass, config):
 
     # listen to HASS events
     hass.bus.async_listen(MATCH_ALL, _fire_event)
+
+    # listen to hauto events
+    # hauto.bus.subscribe(EVT_APP_LOAD, _create_app_entity)
+    # hauto.bus.subscribe(EVT_APP_UNLOAD, _remove_app_entity)
+    # hauto.bus.subscribe(EVT_INTENT_SUBSCRIBE, _create_intent_switch)
+
     return True
