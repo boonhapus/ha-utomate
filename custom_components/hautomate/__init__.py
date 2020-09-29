@@ -9,15 +9,15 @@ import logging
 from hautomate.apis.homeassistant.events import HASS_EVENT_RECEIVE
 from hautomate.settings import HautoConfig
 # from hautomate.context import Context
-# from hautomate.events import EVT_INTENT_SUBSCRIBE
+from hautomate.events import EVT_INTENT_SUBSCRIBE, EVT_INTENT_END
 from hautomate import Hautomate
 
 from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.const import MATCH_ALL, SERVICE_RELOAD, EVENT_TIME_CHANGED
 # from homeassistant.core import Event
 
-from .switch import HautoIntentEntity
 from .schema import CONFIG_SCHEMA
+from .switch import HautoIntent
 from .const import DOMAIN, CONF_APPS_DIR
 
 
@@ -50,13 +50,6 @@ async def async_setup(hass, config):
 
     cfg = HautoConfig(**cfg_data)
     hass.data[DOMAIN] = hauto = Hautomate(cfg)
-    await hauto.start()
-    _LOGGER.info(f'setup {len(hauto.apps)} apps!')
-
-    # register Intents
-    for app in hauto.apps:
-        _LOGGER.info(f'adding {len(app.intents)} from {app}!')
-        await component.async_add_entities([HautoIntentEntity(i) for i in app.intents])
 
     # ----------------------------------------------------------------------------------
 
@@ -79,22 +72,38 @@ async def async_setup(hass, config):
             hass_event=event
         )
 
-    # async def _create_intent_switch(ctx: Context):
-    #     """ TODO """
-    #     intent = ctx.event_data['created_intent']
-    #     async_add_entities([HautoIntentEntity(intent)])
+    async def _update_intent(ctx):
+        """ TODO """
+        intent = ctx.event_data['ended_intent']
+        entity_id = f'hautomate.intent_{intent._id}'
+        entity = component.get_entity(entity_id)
+
+        if entity is None:
+            return
+
+        await entity.async_update_ha_state()
+
+    async def _create_intent_switch(ctx):
+        """ TODO """
+        intent = ctx.event_data['created_intent']
+
+        if intent._app is not None:
+            _LOGGER.info(f'adding intent: {intent}')
+            await component.async_add_entities([HautoIntent(intent)])
 
     # ----------------------------------------------------------------------------------
 
     # register services
     hass.services.async_register(DOMAIN, SERVICE_RELOAD, _stop_start)
 
+    # listen to hauto events
+    hauto.bus.subscribe(EVT_INTENT_SUBSCRIBE, _create_intent_switch)
+    hauto.bus.subscribe(EVT_INTENT_END, _update_intent)
+
+    await hauto.start()
+
     # listen to HASS events
     hass.bus.async_listen(MATCH_ALL, _fire_event)
 
-    # listen to hauto events
-    # hauto.bus.subscribe(EVT_APP_LOAD, _create_app_entity)
-    # hauto.bus.subscribe(EVT_APP_UNLOAD, _remove_app_entity)
-    # hauto.bus.subscribe(EVT_INTENT_SUBSCRIBE, _create_intent_switch)
-
+    _LOGGER.info(f'setup {len(hauto.apps)} apps!')
     return True
