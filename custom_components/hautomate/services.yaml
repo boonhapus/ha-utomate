@@ -1,3 +1,10 @@
-# Hautomate Services
-#
-# 
+reload:
+  description: Teardown all Apps and begin anew, loading all Apps and setting up intents.
+
+fire:
+  description: Fire an event on the hautomate event bus.
+  fields:
+    event:
+      description: Name of trigger event.
+    data:
+      description: JSON mapping to pass through to the Intent.

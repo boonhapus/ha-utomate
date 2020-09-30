@@ -1,102 +1,139 @@
 import logging
 
-from homeassistant.helpers.entity import ToggleEntity
+from hautomate.apis.homeassistant.events import HASS_EVENT_RECEIVE
+from hautomate.events import EVT_INTENT_SUBSCRIBE, EVT_INTENT_END
+from hautomate.util.async_ import safe_sync
 from hautomate.enums import IntentState
+
+from homeassistant.helpers.entity_component import EntityComponent
+from homeassistant.helpers.entity import ToggleEntity
+from homeassistant.const import MATCH_ALL, EVENT_TIME_CHANGED
+
+from .entity import HautoIntentEntity
+from .const import DOMAIN
 
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class HautoIntent(ToggleEntity):
-    """
-    """
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+    """ """
+    if discovery_info is None:
+        return
 
+    component = EntityComponent(_LOGGER, DOMAIN, hass)  # used to update HautoIntentEntity
+    hauto = hass.data[DOMAIN]
+
+    await hauto.start()
+
+    intents = [intent for app in hauto.apps for intent in app.intents]
+    async_add_entities([HautoIntentSwitch(i) for i in intents])
+    _LOGGER.info(f'setup {len(hauto.apps)} apps!')
+
+    # ----------------------------------------------------------------------------------
+
+    @safe_sync
+    def _create_intent_switch(ctx):
+        """ TODO """
+        intent = ctx.event_data['created_intent']
+
+        if intent._app is not None or intent.func.__name__ == '<lambda>':
+            async_add_entities([HautoIntentSwitch(intent)])
+            _LOGGER.info(f'added intent: {intent}')
+
+    async def _update_intent(ctx):
+        """ TODO """
+        intent = ctx.event_data['ended_intent']
+        entity_id = f'hautomate.intent_{intent._id}'
+        entity = component.get_entity(entity_id)  # TODO can this be replaced ?
+
+        if entity is None:
+            return
+
+        await entity.async_update_ha_state()
+
+    async def _hook_event(event):
+        """ Hook Home-Assistant events into the Hauto Bus. """
+        if event.event_type in (EVENT_TIME_CHANGED, ):
+            return
+
+        await hauto.bus.fire(
+            HASS_EVENT_RECEIVE,
+            parent=hauto.apis.homeassistant,
+            hass_event=event
+        )
+
+    # ----------------------------------------------------------------------------------
+
+    # listen to hauto events in HASS
+    # - create Entities once a new INTENT exists
+    # - update Entities once an INTENT runs
+    hauto.bus.subscribe(EVT_INTENT_SUBSCRIBE, _create_intent_switch)
+    hauto.bus.subscribe(EVT_INTENT_END, _update_intent)
+
+    # listen to HASS events in Hautomate
+    # - forward all HASS events into the hautomate event bus
+    #   NOTE: not to confuse this with directly firing an event into the bus!
+    hass.bus.async_listen(MATCH_ALL, _hook_event)
+
+
+class HautoIntentSwitch(HautoIntentEntity, ToggleEntity):
+    """
+    """
     def __init__(self, hauto_intent):
-        self.hauto_intent = hauto_intent
-
-        self.hauto_intent.pause = self._pause
-        self.hauto_intent.unpause = self._unpause
-        # self.hauto_intent.__call__ = self.__intent_call__
-
-    # Internal methods
-
-    async def _pause(self):
-        """ TODO """
-        self.hauto_intent._state = IntentState.paused
-        await self.async_update_ha_state()
-
-    async def _unpause(self):
-        """ TODO """
-        self.hauto_intent._state = IntentState.unpaused
-        await self.async_update_ha_state()
-
-    # async def __intent_call__(self, ctx, *a, **kw):
-    #     _LOGGER.info(f'running... {ctx.event}')
-    #     r = await self.hauto_intent.__runner__(ctx, *a, **kw)
-    #     await self.async_update_ha_state()
-
-    # ABC overrides
+        super().__init__(hauto_intent)
+        self.entity_id = f'switch.intent_{hauto_intent._id}'
 
     @property
-    def should_poll(self) -> bool:
-        """ Return the polling requirement of the entity. """
-        return False
+    def unique_id(self) -> str:
+        """
+        Return a unique ID.
+        """
+        return f'{self.hauto_intent._id}_switch'
 
     @property
-    def unique_id(self):
-        return self.hauto_intent._id
+    def device_state_attributes(self):
+        attr = {}
+        attr['func'] = getattr(self.hauto_intent.func, '__name__', 'undefined')
+        attr['concurrency'] = self.hauto_intent.concurrency
+        attr['parent'] = getattr(self.hauto_intent._app, 'name', None)
+        attr['event'] = self.hauto_intent.event
+        attr['last_ran'] = self.hauto_intent.last_ran
+        attr['runs'] = self.hauto_intent.runs
+        attr['limit'] = self.hauto_intent.limit
+        attr['n_checks'] = len(self.hauto_intent.checks)
+        attr['has_cooldown'] = self.hauto_intent.cooldown is not None
+        return attr
 
     @property
-    def name(self) -> str:
-        """ Return the name of the entity. """
-        return f'intent_{self.hauto_intent._id}'
-
-    # @property
-    # def state(self) -> str:
-    #     """ Return the state of the entity. """
-    #     return self.hauto_intent._state.value.lower()
+    def state(self) -> str:
+        """ Return the state of the switch. """
+        return self.hauto_intent._state.value.lower()
 
     @property
-    def state_attributes(self) -> str:
-        """ Return the data of the entity. """
-        data = {
-            'func': getattr(self.hauto_intent.func, '__name__', 'undefined'),
-            'concurrency': self.hauto_intent.concurrency,
-            'parent': getattr(self.hauto_intent._app, 'name', None),
-            'event': self.hauto_intent.event,
-            'last_ran': self.hauto_intent.last_ran,
-            'runs': self.hauto_intent.runs,
-            'limit': self.hauto_intent.limit,
-            'n_checks': len(self.hauto_intent.checks),
-            'has_cooldown': self.hauto_intent.cooldown is not None,
-        }
-        return data
+    def name(self):
+        """ Return the name of the switch. """
+        parent = self.hauto_intent._app
+        func = self.hauto_intent.func.__name__
 
-    @property
-    def icon(self) -> str:
-        """ Return icon. """
-        return 'mdi:robot'
+        if parent is None:
+            return f'UnboundIntent {func}'
+
+        return f'Intent {parent.name}.{func}'
 
     @property
     def is_on(self) -> bool:
         """ Return True if entity is on. """
-        return self.hauto_intent._state == IntentState.ready
+        raise self.hauto_intent._state == IntentState.ready
 
-    # ...
+    async def async_added_to_hass(self):
+        """ """
+        await self.async_update_ha_state()
 
     async def async_turn_on(self):
-        """
-        """
+        """ """
         await self._unpause()
 
     async def async_turn_off(self):
-        """
-        """
+        """ """
         await self._pause()
-
-    async def async_toggle(self, **kwargs) -> None:
-        """Toggle the entity."""
-        if self.is_on:
-            await self.async_turn_off(**kwargs)
-        else:
-            await self.async_turn_on(**kwargs)
