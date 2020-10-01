@@ -6,7 +6,7 @@ from hautomate.util.async_ import safe_sync
 from hautomate.enums import IntentState
 
 from homeassistant.helpers.entity_component import EntityComponent
-from homeassistant.helpers.entity import ToggleEntity
+from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import MATCH_ALL, EVENT_TIME_CHANGED
 
 from .entity import HautoIntentEntity
@@ -77,7 +77,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     hass.bus.async_listen(MATCH_ALL, _hook_event)
 
 
-class HautoIntentSwitch(HautoIntentEntity, ToggleEntity):
+class HautoIntentSwitch(HautoIntentEntity, SwitchEntity):
     """
     """
     def __init__(self, hauto_intent):
@@ -85,30 +85,9 @@ class HautoIntentSwitch(HautoIntentEntity, ToggleEntity):
         self.entity_id = f'switch.intent_{hauto_intent._id}'
 
     @property
-    def unique_id(self) -> str:
-        """
-        Return a unique ID.
-        """
-        return f'{self.hauto_intent._id}_switch'
-
-    @property
-    def device_state_attributes(self):
-        attr = {}
-        attr['func'] = getattr(self.hauto_intent.func, '__name__', 'undefined')
-        attr['concurrency'] = self.hauto_intent.concurrency
-        attr['parent'] = getattr(self.hauto_intent._app, 'name', None)
-        attr['event'] = self.hauto_intent.event
-        attr['last_ran'] = self.hauto_intent.last_ran
-        attr['runs'] = self.hauto_intent.runs
-        attr['limit'] = self.hauto_intent.limit
-        attr['n_checks'] = len(self.hauto_intent.checks)
-        attr['has_cooldown'] = self.hauto_intent.cooldown is not None
-        return attr
-
-    @property
     def state(self) -> str:
         """ Return the state of the switch. """
-        return self.hauto_intent._state.value.lower()
+        return 'on' if self.hauto_intent._state == IntentState.ready else 'off'
 
     @property
     def name(self):
@@ -124,16 +103,12 @@ class HautoIntentSwitch(HautoIntentEntity, ToggleEntity):
     @property
     def is_on(self) -> bool:
         """ Return True if entity is on. """
-        raise self.hauto_intent._state == IntentState.ready
-
-    async def async_added_to_hass(self):
-        """ """
-        await self.async_update_ha_state()
+        return self.hauto_intent._state == IntentState.ready
 
     async def async_turn_on(self):
         """ """
-        await self._unpause()
+        self._unpause()
 
     async def async_turn_off(self):
         """ """
-        await self._pause()
+        self._pause()
