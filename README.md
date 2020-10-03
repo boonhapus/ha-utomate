@@ -28,7 +28,7 @@ hautomate:
 ```
 
 <p align="center">
-    <img src="./static/ui-example.png" alt='ui-example'>
+    <img src="./static/ui-eg.PNG" alt='ui-example'>
 </p>
 
 [hass]: https://www.home-assistant.io/
@@ -36,4 +36,3 @@ hautomate:
 [hauto]: https://github.com/boonhapus/hautomate
 [hacs]: https://hacs.xyz/
 [hacs-custrepo]: https://hacs.xyz/docs/faq/custom_repositories
-[ui-eg]: ./static/ui-eg.PNG
