@@ -36,4 +36,4 @@ hautomate:
 [hauto]: https://github.com/boonhapus/hautomate
 [hacs]: https://hacs.xyz/
 [hacs-custrepo]: https://hacs.xyz/docs/faq/custom_repositories
-[ui-eg]: ./static/ui-example.png
+[ui-eg]: ./static/ui-eg.PNG
