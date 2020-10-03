@@ -1,13 +1,16 @@
 import logging
 
 from hautomate.apis.homeassistant.events import HASS_EVENT_RECEIVE
+from hautomate.context import Context
 from hautomate.events import EVT_INTENT_SUBSCRIBE, EVT_INTENT_END
+from hautomate.intent import Intent
 from hautomate.util.async_ import safe_sync
 from hautomate.enums import IntentState
 
-from homeassistant.helpers.entity_component import EntityComponent
+from homeassistant.helpers import entity_platform
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.const import MATCH_ALL, EVENT_TIME_CHANGED
+from homeassistant.core import Event
 
 from .entity import HautoIntentEntity
 from .const import DOMAIN
@@ -17,42 +20,44 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """ """
+    """ Setup the hauto platform. """
     if discovery_info is None:
         return
 
-    component = EntityComponent(_LOGGER, DOMAIN, hass)  # used to update HautoIntentEntity
+    # component = EntityComponent(_LOGGER, DOMAIN, hass)  # used to update HautoIntentEntity
+    platform = entity_platform.current_platform.get()
     hauto = hass.data[DOMAIN]
 
     await hauto.start()
 
-    intents = [intent for app in hauto.apps for intent in app.intents]
-    async_add_entities([HautoIntentSwitch(i) for i in intents])
+    entities = [HautoIntentSwitch(intent) for app in hauto.apps for intent in app.intents]
+    async_add_entities(entities)
     _LOGGER.info(f'setup {len(hauto.apps)} apps!')
 
     # ----------------------------------------------------------------------------------
 
     @safe_sync
-    def _create_intent_switch(ctx):
-        """ TODO """
+    def _create_intent_switch(ctx: Context):
+        """ On INTENT_SUBSCRIBE, create a new HautoIntentSwitch. """
         intent = ctx.event_data['created_intent']
 
         if intent._app is not None or intent.func.__name__ == '<lambda>':
-            async_add_entities([HautoIntentSwitch(intent)])
-            _LOGGER.info(f'added intent: {intent}')
+            entity = HautoIntentSwitch(intent)
+            async_add_entities({entity})
+            _LOGGER.info(f'added entity ({entity.entity_id}) for intent: {intent}')
 
-    async def _update_intent(ctx):
-        """ TODO """
+    @safe_sync
+    async def _update_intent(ctx: Context):
+        """ On INTENT_END, run an update on the HautoIntentSwitch. """
         intent = ctx.event_data['ended_intent']
-        entity_id = f'hautomate.intent_{intent._id}'
-        entity = component.get_entity(entity_id)  # TODO can this be replaced ?
+        entity = platform.entities.get(f'switch.intent_{intent._id}')
 
         if entity is None:
             return
 
-        await entity.async_update_ha_state()
+        entity.async_write_ha_state()
 
-    async def _hook_event(event):
+    async def _hook_event(event: Event):
         """ Hook Home-Assistant events into the Hauto Bus. """
         if event.event_type in (EVENT_TIME_CHANGED, ):
             return
@@ -79,8 +84,9 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
 class HautoIntentSwitch(HautoIntentEntity, SwitchEntity):
     """
+    A switch which represents an active Intent.
     """
-    def __init__(self, hauto_intent):
+    def __init__(self, hauto_intent: Intent):
         super().__init__(hauto_intent)
         self.entity_id = f'switch.intent_{hauto_intent._id}'
 
@@ -106,9 +112,19 @@ class HautoIntentSwitch(HautoIntentEntity, SwitchEntity):
         return self.hauto_intent._state == IntentState.ready
 
     async def async_turn_on(self):
-        """ """
+        """
+        Turn the IntentEntitySwtich on.
+
+        This will run the internal unpause callback during a single
+        iteration of the event loop.
+        """
         self._unpause()
 
     async def async_turn_off(self):
-        """ """
+        """
+        Turn the IntentEntitySwtich off.
+
+        This will run the internal pause callback during a single
+        iteration of the event loop.
+        """
         self._pause()
