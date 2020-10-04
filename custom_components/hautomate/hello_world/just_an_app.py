@@ -2,7 +2,7 @@ from hautomate.apis.homeassistant.events import HASS_EVENT_RECEIVE
 from hautomate.context import Context
 from hautomate.events import EVT_ANY
 from hautomate.check import check
-from hautomate.apis import trigger
+from hautomate.apis import trigger, homeassistant as hass
 from hautomate.app import App
 
 
@@ -15,8 +15,6 @@ class HelloWorld(App):
         """
         Run on the first HomeAssistant event seen.
         """
-        hass = ctx.parent.hass_interface
-
         await hass.call_service(
             'persistent_notification',
             'create',
@@ -29,8 +27,6 @@ class HelloWorld(App):
         """
         Echo all events that are manually fired into the hauto bus.
         """
-        hass = ctx.parent.hass_interface
-
         await hass.call_service(
             'persistent_notification',
             'create',
