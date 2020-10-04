@@ -68,15 +68,24 @@ class HautoIntentEntity(Entity):
     @property
     def device_state_attributes(self) -> Dict[str, Any]:
         """ Return additional information about an Intent. """
-        attr = {}
-        attr['event'] = self.hauto_intent.event
-        attr['func'] = getattr(self.hauto_intent.func, '__name__', 'undefined')
-        attr['concurrency'] = self.hauto_intent.concurrency
-        attr['n_checks'] = len(self.hauto_intent.checks)
-        attr['has_cooldown'] = self.hauto_intent.cooldown is not None
-        attr['intent_state'] = self.hauto_intent._state.value
-        attr['app'] = getattr(self.hauto_intent._app, 'name', None)
-        attr['last_ran'] = self.hauto_intent.last_ran
-        attr['runs'] = self.hauto_intent.runs
-        attr['limit'] = self.hauto_intent.limit
+        intent = self.hauto_intent
+        fn_name = (
+            getattr(intent.func, '__qualname__', None)
+            or getattr(intent.func, '__name__', None)
+            or str(intent.func)
+        )
+
+        attr = {
+            'event': intent.event,
+            'func': fn_name,
+            'concurrency': intent.concurrency,
+            'n_checks': len(intent.checks),
+            'has_cooldown': intent.cooldown is not None,
+            'intent_state': intent._state.value,
+            'app': getattr(intent._app, 'name', None),
+            'last_ran': intent.last_ran,
+            'runs': intent.runs,
+            'limit': intent.limit
+        }
+
         return attr
