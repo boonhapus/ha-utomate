@@ -18,7 +18,7 @@ class HelloWorld(App):
         await hass.call_service(
             'persistent_notification',
             'create',
-            {'title': '👋 from Hautomate! 🎉', 'message': 'Hello, world!'}
+            service_data={'title': '👋 from Hautomate! 🎉', 'message': 'Hello, world!'}
         )
 
     @trigger.on(EVT_ANY)
@@ -30,7 +30,7 @@ class HelloWorld(App):
         await hass.call_service(
             'persistent_notification',
             'create',
-            {'title': '📣 echo from Hautomate! 🦇', 'message': f'{ctx.event}'}
+            service_data={'title': '📣 echo from Hautomate! 🦇', 'message': f'{ctx.event}'}
         )
 
 
