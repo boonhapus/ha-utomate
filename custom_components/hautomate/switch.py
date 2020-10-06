@@ -24,7 +24,6 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     if discovery_info is None:
         return
 
-    # component = EntityComponent(_LOGGER, DOMAIN, hass)  # used to update HautoIntentEntity
     platform = entity_platform.current_platform.get()
     hauto = hass.data[DOMAIN]
 
