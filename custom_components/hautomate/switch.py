@@ -9,7 +9,7 @@ from hautomate.enums import IntentState
 
 from homeassistant.helpers import entity_platform
 from homeassistant.components.switch import SwitchEntity
-from homeassistant.const import MATCH_ALL, EVENT_TIME_CHANGED
+from homeassistant.const import MATCH_ALL, EVENT_TIME_CHANGED, EVENT_STATE_CHANGED
 from homeassistant.core import Event
 
 from .entity import HautoIntentEntity
@@ -59,6 +59,14 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     async def _hook_event(event: Event):
         """ Hook Home-Assistant events into the Hauto Bus. """
         if event.event_type in (EVENT_TIME_CHANGED, ):
+            return
+
+        # short-circuit our own updates, which would filter back into
+        # hautomate and possibly create an infinite loop...
+        if (
+            event.event_type == EVENT_STATE_CHANGED
+            and event.data['entity_id'].startswith('switch.intent_')
+        ):
             return
 
         await hauto.bus.fire(
