@@ -49,7 +49,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     async def _update_intent(ctx: Context):
         """ On INTENT_END, run an update on the HautoIntentSwitch. """
         intent = ctx.event_data['ended_intent']
-        entity = platform.entities.get(f'switch.intent_{intent._id}')
+        entity = platform.entities.get(f'switch.hauto_intent_{intent._id}')
 
         if entity is None:
             return
@@ -65,7 +65,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         # hautomate and possibly create an infinite loop...
         if (
             event.event_type == EVENT_STATE_CHANGED
-            and event.data['entity_id'].startswith('switch.intent_')
+            and event.data['entity_id'].startswith('switch.hauto_intent_')
         ):
             return
 
@@ -95,7 +95,7 @@ class HautoIntentSwitch(HautoIntentEntity, SwitchEntity):
     """
     def __init__(self, hauto_intent: Intent):
         super().__init__(hauto_intent)
-        self.entity_id = f'switch.intent_{hauto_intent._id}'
+        self.entity_id = f'switch.hauto_intent_{hauto_intent._id}'
 
     @property
     def state(self) -> str:
