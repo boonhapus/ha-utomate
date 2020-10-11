@@ -2,9 +2,11 @@ reload:
   description: Teardown all Apps and begin anew, loading all Apps and setting up intents.
 
 fire:
-  description: Fire an event directly on the hautomate event bus.
+  description: Fire an event directly on the hautomate event bus
   fields:
     event:
       description: Name of the event to trigger.
+      example: ''
     data:
       description: An optional JSON mapping to pass as data to the Intent.
+      example: ''

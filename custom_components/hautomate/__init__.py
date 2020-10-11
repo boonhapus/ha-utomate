@@ -57,14 +57,11 @@ async def async_setup(hass, config):
 
     async def _fire_event(call: ServiceCall):
         """ Provide a service to fire an event on Hautomate bus. """
-        event = call.data.get('event')
-        data = call.data.get('data')
+        event = call.data.get('event', None)
+        data = call.data.get('data', {})
 
         if event is None:
             raise TypeError('an event must be provided!')
-
-        if data is None:
-            data = {}
 
         if not isinstance(data, dict):
             raise TypeError('service call data is not a valid json mapping!')
