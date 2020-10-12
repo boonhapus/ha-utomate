@@ -1,8 +1,9 @@
+import asyncio
 import logging
 
 from hautomate.apis.homeassistant.events import HASS_EVENT_RECEIVE
 from hautomate.context import Context
-from hautomate.events import EVT_INTENT_SUBSCRIBE, EVT_INTENT_END
+from hautomate.events import EVT_INTENT_SUBSCRIBE, EVT_INTENT_END, EVT_STOP
 from hautomate.intent import Intent
 from hautomate.util.async_ import safe_sync
 from hautomate.enums import IntentState
@@ -56,6 +57,16 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
         entity.async_write_ha_state()
 
+    async def _remove_intent_switch(ctx: Context):
+        """ On HAUTO_STOP, remove all the entities we've thus created. """
+        if not platform.entities:
+            return
+
+        await asyncio.gather(*[
+            platform.async_remove_entity(entity_id)
+            for entity_id in platform.entities
+        ])
+
     async def _hook_event(event: Event):
         """ Hook Home-Assistant events into the Hauto Bus. """
         if event.event_type in (EVENT_TIME_CHANGED, ):
@@ -80,8 +91,10 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     # listen to hauto events in HASS
     # - create Entities once a new INTENT exists
     # - update Entities once an INTENT runs
+    # - remove Entities once we STOP
     hauto.bus.subscribe(EVT_INTENT_SUBSCRIBE, _create_intent_switch)
     hauto.bus.subscribe(EVT_INTENT_END, _update_intent)
+    hauto.bus.subscribe(EVT_STOP, _remove_intent_switch)
 
     # listen to HASS events in Hautomate
     # - forward all HASS events into the hautomate event bus
