@@ -43,7 +43,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
         if intent._app is not None or intent.func.__name__ == '<lambda>':
             entity = HautoIntentSwitch(intent)
-            async_add_entities({entity})
+            async_add_entities([entity])
             _LOGGER.info(f'added entity ({entity.entity_id}) for intent: {intent}')
 
     @safe_sync
