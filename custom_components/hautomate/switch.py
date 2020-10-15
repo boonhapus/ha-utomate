@@ -26,7 +26,8 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         return
 
     platform = entity_platform.current_platform.get()
-    hauto = hass.data[DOMAIN]
+    hass.data[DOMAIN]['entity_platform'] = platform
+    hauto = hass.data[DOMAIN]['hauto']
 
     await hauto.start()
 

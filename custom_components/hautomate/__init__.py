@@ -43,7 +43,11 @@ async def async_setup(hass, config):
     }
 
     cfg = HautoConfig(**cfg_data)
-    hass.data[DOMAIN] = hauto = Hautomate(cfg)
+    hauto = Hautomate(cfg)
+    hass.data[DOMAIN] = {
+        'hauto': hauto,
+        'entity_platform': None  # see switch.py
+    }
 
     # ----------------------------------------------------------------------------------
 
