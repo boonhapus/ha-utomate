@@ -1,6 +1,7 @@
 {
     "domain": "hautomate",
     "name": "Hautomate",
+    "version": "0.1.0",
     "documentation": "https://github.com/boonhapus/ha-utomate",
     "issue_tracker": "https://github.com/boonhapus/ha-utomate/issues",
     "dependencies": ["device_automation", "webhook"],
