@@ -6,7 +6,7 @@ A task automation library focused on home automation.
 
 ### Recent Changelog
 
-**[\[v0.2.0\]][0.2.0]** - 🕷 Sensors, Wrap up work, Infinite Loop Bug!
+**[\[v0.2.0\]][0.2.0]** - 🕷 Sensors, Wrap up logic, Infinite Loop Bug!
 `+` ability to create Sensors in HomeAssistant
 `+` teardown logic to cleanup user-created Switches and Sensors
 `*` disambiguate Intent entities with entity_id prefix of 'hauto_'
