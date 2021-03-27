@@ -132,3 +132,4 @@ dmypy.json
 # Local development
 *.sublime-project
 *.sublime-workspace
+*.zip
