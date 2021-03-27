@@ -46,7 +46,8 @@ async def async_setup(hass, config):
     hauto = Hautomate(cfg)
     hass.data[DOMAIN] = {
         'hauto': hauto,
-        'entity_platform': None  # see switch.py
+        'switch_platform': None,  # see switch.py
+        'sensor_platform': None   # see sensor.py
     }
 
     # ----------------------------------------------------------------------------------
@@ -80,4 +81,5 @@ async def async_setup(hass, config):
     hass.services.async_register(DOMAIN, SERVICE_RELOAD, _stop_start)
     hass.services.async_register(DOMAIN, 'fire', _fire_event)
     discovery.load_platform(hass, 'switch', DOMAIN, {}, config)
+    discovery.load_platform(hass, 'sensor', DOMAIN, {}, config)
     return True
